@@ -10,7 +10,7 @@ An original article, slide deck and video presentation on **memory for LLM agent
 
 | Deliverable | Where |
 |---|---|
-| Medium article | **MEDIUM_URL** (source: [`article/medium_article.md`](article/medium_article.md)) |
+| Medium article | [Your Agent Remembers Everything and Learns Nothing](https://medium.com/@prathampravin.gala/your-agent-remembers-everything-and-learns-nothing-9c673d303c1a) (source: [`article/medium_article.md`](article/medium_article.md)) |
 | Slide deck on SlideShare | **SLIDESHARE_URL** (source: [`slides/memory_for_llm_agents.pptx`](slides/memory_for_llm_agents.pptx), [`slides/memory_for_llm_agents.pdf`](slides/memory_for_llm_agents.pdf)) |
 | Video presentation (YouTube) | **YOUTUBE_URL** |
 | Video file in this repo | [`video/memory_for_llm_agents_tts_draft.mp4`](video/memory_for_llm_agents_tts_draft.mp4): 16 min 38 s, 1080p, narrated with Windows text-to-speech |

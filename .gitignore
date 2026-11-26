@@ -1,0 +1,6 @@
+src/node_modules/
+build/
+__pycache__/
+*.pyc
+~$*.pptx
+.DS_Store

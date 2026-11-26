@@ -1,0 +1,132 @@
+{
+  "_about": "Every number plotted in figures/ comes from this file. Each block names the paper, table and what the number means, so a reader can check it against the source.",
+
+  "mem0_locomo": {
+    "source": "Chhikara et al., Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory, arXiv:2504.19413, Table 2",
+    "metric": "Overall LLM-as-a-Judge score J on LoCoMo (higher is better) and total p95 latency in seconds",
+    "rows": [
+      {"method": "Full context", "kind": "baseline", "J": 72.90, "p95_total_s": 17.117, "context_tokens": 26031},
+      {"method": "Mem0 (graph)", "kind": "memory", "J": 68.44, "p95_total_s": 2.590, "context_tokens": 3616},
+      {"method": "Mem0", "kind": "memory", "J": 66.88, "p95_total_s": 1.440, "context_tokens": 1764},
+      {"method": "Zep", "kind": "memory", "J": 65.99, "p95_total_s": 2.926, "context_tokens": 3911},
+      {"method": "Best RAG (k=2, 256-token chunks)", "kind": "baseline", "J": 60.97, "p95_total_s": 1.907, "context_tokens": 512},
+      {"method": "LangMem", "kind": "memory", "J": 58.10, "p95_total_s": 60.40, "context_tokens": 127},
+      {"method": "OpenAI memory", "kind": "memory", "J": 52.90, "p95_total_s": 0.889, "context_tokens": 4437},
+      {"method": "A-Mem", "kind": "memory", "J": 48.38, "p95_total_s": 4.374, "context_tokens": 2520}
+    ]
+  },
+
+  "zep_longmemeval": {
+    "source": "Rasmussen et al., Zep: A Temporal Knowledge Graph Architecture for Agent Memory, arXiv:2501.13956, Table 2 (LongMemEval_S)",
+    "rows": [
+      {"model": "gpt-4o-mini", "memory": "Full context", "accuracy": 55.4, "latency_s": 31.3, "context_tokens": 115000},
+      {"model": "gpt-4o-mini", "memory": "Zep", "accuracy": 63.8, "latency_s": 3.20, "context_tokens": 1600},
+      {"model": "gpt-4o", "memory": "Full context", "accuracy": 60.2, "latency_s": 28.9, "context_tokens": 115000},
+      {"model": "gpt-4o", "memory": "Zep", "accuracy": 71.2, "latency_s": 2.58, "context_tokens": 1600}
+    ]
+  },
+
+  "harness_user_centric_qwen3_32b": {
+    "source": "Huang et al., Harness the Memory: A Holistic Evaluation of Memory Substrates in Memory Agents, arXiv:2608.15008v2, Table 1 (Qwen3-32B-AWQ backbone)",
+    "metric": "LLM-judge score P4 (0-1, higher is better)",
+    "columns": ["LoCoMo", "LongMemEval-S", "MAB: long-range", "MAB: test-time learning", "MAB: conflict resolution"],
+    "rows": {
+      "M1 Dense vector": [0.582, 0.548, 0.676, 0.810, 0.300],
+      "M2 BM25": [0.487, 0.497, 0.662, 0.780, 0.280],
+      "M3 Gist index (ReadAgent)": [0.586, 0.560, 0.775, 0.850, 0.270],
+      "M4 Evolving notes (A-MEM)": [0.452, 0.490, 0.535, 0.710, 0.290],
+      "M5 Dual-level graph (LightRAG)": [0.683, 0.627, 0.578, 0.630, 0.310],
+      "M6 Tree (RAPTOR)": [0.573, 0.593, 0.577, 0.330, 0.270],
+      "M8 Skill bundles (MemSkill)": [0.533, 0.533, 0.592, 0.810, 0.320],
+      "M9 LoRA adapter": [0.399, 0.290, 0.422, 0.250, 0.170],
+      "M10 Full context": [0.669, 0.190, 0.620, 0.760, 0.270],
+      "M11 Episode re-prefill (EpiCache)": [0.274, 0.113, 0.620, 0.810, 0.320]
+    }
+  },
+
+  "harness_locomo_latency_qwen3_8b": {
+    "source": "arXiv:2608.15008v2, Table 1 (Qwen3-8B backbone), LoCoMo P4 and per-query latency E15 in seconds",
+    "rows": {
+      "Dense vector": [0.561, 0.77],
+      "BM25": [0.470, 0.33],
+      "Gist index": [0.562, 4.18],
+      "A-MEM notes": [0.545, 6.36],
+      "LightRAG graph": [0.648, 27.84],
+      "RAPTOR tree": [0.556, 1.39],
+      "MemSkill": [0.509, 3.03],
+      "LoRA adapter": [0.379, 1.76],
+      "Full context": [0.589, 4.55],
+      "EpiCache": [0.307, 2.03]
+    }
+  },
+
+  "harness_agent_centric_qwen3_32b": {
+    "source": "arXiv:2608.15008v2, Table 2 (Qwen3-32B-AWQ). ALFWorld task success rate (%) and BigCodeBench-Hard Pass@1 (%)",
+    "no_memory": {"ALFWorld": 22.4, "BCB-Hard": 17.6},
+    "rows": {
+      "Dense vector": [27.6, 18.2],
+      "BM25": [21.6, 19.6],
+      "Gist index": [26.9, 18.2],
+      "A-MEM notes": [26.9, 17.6],
+      "LightRAG graph": [23.1, 16.2],
+      "RAPTOR tree": [23.9, 16.2],
+      "ReasoningBank strategies": [32.1, 17.6],
+      "MemSkill": [22.4, 13.5],
+      "LoRA adapter": [29.9, 14.2],
+      "EpiCache": [26.9, 13.5]
+    }
+  },
+
+  "mccl_stateful_minus_reset": {
+    "source": "Li et al., Memory-Centric Continual Learning for AI Agents, arXiv:2610.29357, Sec. 4.3 (IdeaBench sequential deployment, Mem0 at an 8,192-token cap)",
+    "metric": "Stateful score minus reset score, in points (positive = memory helps)",
+    "checkpoints_dialogues": [64, 128, 256],
+    "single_ordering": [7.10, -10.43, -13.93],
+    "pooled_three_orderings": [3.18, -10.38, -11.60]
+  },
+
+  "mccl_reader_policies": {
+    "source": "arXiv:2610.29357, Table 4 (LoCoMo, 9 conversations, 180 questions, Mem0 memory banks)",
+    "rows": [
+      {"policy": "Read whole bank", "F1": 4.63, "input_tokens": 729.78, "median_latency_s": 0.154},
+      {"policy": "Search", "F1": 4.29, "input_tokens": 225.68, "median_latency_s": 0.154},
+      {"policy": "Search + summarize", "F1": 3.91, "input_tokens": 43.52, "median_latency_s": 0.367}
+    ],
+    "read_budget_longmemeval": {"budget_512_tokens_accuracy": 35.0, "budget_2048_tokens_accuracy": 44.0}
+  },
+
+  "merit_hard_tier": {
+    "source": "Mishra and Mishra, When Does Memory Help? A Cost-Aware Evaluation of Long-Term Memory in Tool-Using LLM Agents (MERIT), arXiv:2609.05441, hard tier (fact updated mid-arc), real implementations, gpt-4.1-mini",
+    "metric": "Dependent-task success rate (0-1). No-memory scores 0.00 everywhere.",
+    "domains": ["Customer support", "IT operations", "Personal assistant"],
+    "rows": {
+      "Full replay": [1.00, 0.95, 1.00],
+      "Embedding retrieval": [0.70, 0.35, 0.45],
+      "LLM summary": [1.00, 0.70, 1.00],
+      "Fact store (update-on-write)": [0.95, 0.75, 1.00],
+      "Hybrid (facts + retrieval)": [0.80, 0.60, 0.50]
+    },
+    "ignore_rate_retrieval_hard": 0.45
+  },
+
+  "always_on_corpus": {
+    "source": "Ding et al., Always-On Agents: A Survey of Persistent Memory, State, and Governance in LLM Agents, arXiv:2606.30306. Lifecycle coding of 435 works (multi-label)",
+    "total_works": 435,
+    "forward_arc": {"Observe": 68, "Write": 200, "Validate": 87, "Organize": 128, "Retrieve": 269, "Act": 141},
+    "return_arc": {"Update": 127, "Forget": 66, "Audit": 88, "Rollback": 27}
+  },
+
+  "aoep_v0_pilot": {
+    "source": "arXiv:2606.30306, Table 18 (AOEP-v0 pilot, nine fault patterns, Qwen2.5-7B reader)",
+    "metric": "Obligations passed (of 15) and negative invariants passed (of 41)",
+    "rows": [
+      {"system": "Governed reducer (reference)", "obligations": 15, "negative_invariants": 41},
+      {"system": "Naive append", "obligations": 7, "negative_invariants": 40},
+      {"system": "Full context", "obligations": 7, "negative_invariants": 40},
+      {"system": "Vector RAG", "obligations": 7, "negative_invariants": 40},
+      {"system": "Mem0-style reimplementation", "obligations": 4, "negative_invariants": 38},
+      {"system": "Mem0 package (local config)", "obligations": 3, "negative_invariants": 36},
+      {"system": "No memory", "obligations": 0, "negative_invariants": 41}
+    ]
+  }
+}

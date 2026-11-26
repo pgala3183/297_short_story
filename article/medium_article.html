@@ -1,0 +1,301 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><title>Your Agent Remembers Everything and Learns Nothing</title><meta name='viewport' content='width=device-width,initial-scale=1'><style>
+body{max-width:760px;margin:40px auto;padding:0 20px;font:19px/1.6 Georgia,'Times New Roman',serif;color:#242424}
+h1{font:700 40px/1.2 'Segoe UI',Helvetica,Arial,sans-serif;margin:0 0 8px}
+h2{font:700 28px/1.25 'Segoe UI',Helvetica,Arial,sans-serif;margin:48px 0 12px}
+h3{font:600 21px/1.35 'Segoe UI',Helvetica,Arial,sans-serif;color:#555;margin:28px 0 8px}
+img{max-width:100%;display:block;margin:24px auto}
+table{border-collapse:collapse;font:15px/1.4 'Segoe UI',Helvetica,Arial,sans-serif;margin:16px 0}
+td,th{border-bottom:1px solid #e6e5e1;padding:6px 8px;vertical-align:top;text-align:left}
+hr{border:0;border-top:1px solid #e6e5e1;margin:40px 0}
+code{background:#f3f2ef;padding:1px 4px;border-radius:3px}
+</style></head><body><h1>Your Agent Remembers Everything and Learns Nothing</h1>
+<h3>A late-2026 field guide to memory for LLM agents: what five new surveys agree on, what the leaderboards actually measure, and where I think the field is heading</h3>
+<p><em>By Pratham Gala · CMPE 297 short story · November 2026 · ~20 min read</em></p>
+<p><img alt="Cover" src="../figures/fig00_cover.png" /></p>
+<hr />
+<h2>The goldfish with a filing cabinet</h2>
+<p>Here is a frustrating experience most people have had with a chatbot or coding agent. You tell it on Monday that your staging database moved to a new host. On Wednesday it confidently connects to the old one. It still has the Monday conversation somewhere. It just doesn't <em>use</em> it.</p>
+<p>The obvious fix in 2026 looks like "give it a bigger context window." Frontier models read hundreds of thousands of tokens, and some read millions. But a long window behaves like a desk, not a memory. LongMemEval, now the standard memory benchmark, showed this clearly. When GPT-4o got a user's whole chat history (about 115k tokens) instead of only the relevant sessions, its accuracy fell from 0.87 to 0.61. That is a 30% relative drop on questions whose answers were sitting in the prompt. Open models such as Llama 3.1 and Phi-3 dropped by 36–55%.</p>
+<p>So "memory" for agents is its own engineering problem. You decide what to write down, how to organize it, when to bring it back, and when to throw it away. Over the last six months a wave of survey papers has tried to put structure on a field that grew very fast. I read five of them, plus two independent benchmark papers, so you don't have to. This article covers:</p>
+<ol>
+<li>the taxonomies the surveys propose (and how they fit together),</li>
+<li>the handful of techniques that keep showing up on leaderboards,</li>
+<li>what the leaderboards and ablation studies really tell you, and</li>
+<li>my own opinions on what is overhyped and what is underrated.</li>
+</ol>
+<p>I keep the math light and spend the space on architectures, metrics and experiments.</p>
+<hr />
+<h2>The reading list</h2>
+<p><img alt="Timeline of the seven papers" src="../figures/fig01_reading_list_timeline.png" /></p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Paper</th>
+<th>Who</th>
+<th>When</th>
+<th>Why it's here</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Memory-Centric Continual Learning for AI Agents</strong> (arXiv 2610.29357)</td>
+<td>28 authors from HIT Shenzhen, Tsinghua, Southeast University, Huawei and China Telecom's Xingchen AGI Lab</td>
+<td>Oct 21, 2026</td>
+<td><strong>Main paper.</strong> Gives the cleanest taxonomy (WHERE / WHAT / HOW), a lifecycle model, and an evaluation protocol, plus its own experiments</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Always-On Agents: A Survey of Persistent Memory, State, and Governance in LLM Agents</strong> (arXiv 2606.30306)</td>
+<td>Ding, Nannapaneni, Liu, Zhang</td>
+<td>Jun 29, 2026</td>
+<td>Codes 435 papers by lifecycle stage and runs a governance "scorecard" pilot</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Memory for Large Language Models</strong> (arXiv 2607.25380)</td>
+<td>Tsinghua, NUS, Bosch AI (incl. Jie Tang)</td>
+<td>Jul 28, 2026</td>
+<td>The model-level view: KV caches, state-space models, test-time memory</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>From Storage to Experience: A Survey on the Evolution of LLM Agent Memory Mechanisms</strong> (arXiv 2605.06716)</td>
+<td>HKBU, HKUST, NUS and others</td>
+<td>May 7, 2026 (ACL 2026 Findings)</td>
+<td>A three-stage evolutionary view of agent memory</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>A Survey on Long-Term Memory Security in LLM Agents</strong> (arXiv 2604.16548)</td>
+<td>MemTensor, SJTU, PKU, HKUST-GZ</td>
+<td>Apr 17, 2026, revised to v6 on Nov 20, 2026 (expanded EMNLP 2026 paper)</td>
+<td>Attacks and defenses across the memory lifecycle</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Harness the Memory: A Holistic Evaluation of Memory Substrates</strong> (arXiv 2608.15008)</td>
+<td>UIC, UW, McGill, MBZUAI, UCLA (incl. Philip S. Yu, Kai-Wei Chang)</td>
+<td>Aug 2026, v2 Nov 4, 2026</td>
+<td>Independent head-to-head of 11 memory designs under one harness</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>When Does Memory Help? A Cost-Aware Evaluation of Long-Term Memory in Tool-Using LLM Agents (MERIT)</strong> (arXiv 2609.05441)</td>
+<td>Mishra &amp; Mishra</td>
+<td>Jul 2026</td>
+<td>Measures whether memory changes what a <em>tool-using</em> agent does, and at what dollar cost</td>
+</tr>
+</tbody>
+</table>
+<p>Papers 1–3 were first posted in the June–October window. Papers 4 and 5 are a little older, but paper 5 was revised six times through November and paper 4 was accepted at ACL. For the leaderboard I also use three widely cited reference papers: <strong>Mem0</strong> (LoCoMo results), <strong>Zep</strong> (LongMemEval results) and <strong>LongMemEval</strong> itself.</p>
+<hr />
+<h2>One picture to hold it all: three layers and a cross-cutting question</h2>
+<p>The surveys do not compete with each other. They describe different layers of the same stack. This is how I fit them together:</p>
+<p><img alt="Three layers of memory" src="../figures/fig02_three_layers.png" /></p>
+<ul>
+<li><strong>Model layer.</strong> How does the network itself carry state? This covers KV caches, recurrent states in models like Mamba, and weights updated at test time. <em>Memory for Large Language Models</em> lives here.</li>
+<li><strong>Agent layer.</strong> What should the agent write down, how should it be organized, and when should it come back? This is the main survey and <em>From Storage to Experience</em>.</li>
+<li><strong>Governance layer.</strong> Who may write or read a memory, can it be deleted for real, and can a bad one be rolled back? This is <em>Always-On Agents</em> and the security survey.</li>
+<li><strong>Evaluation</strong> cuts across all three. Does memory change what the agent <em>does</em>, and what does it cost?</li>
+</ul>
+<p>The rest of the article walks through these layers in order.</p>
+<hr />
+<h2>The main taxonomy: WHERE, WHAT and HOW</h2>
+<p>The main survey (Li et al., <em>Memory-Centric Continual Learning</em>) makes a deliberately provocative claim. <strong>Memory should be judged by whether it improves future actions, not by what it can retrieve.</strong> Under that lens, most of today's systems are passive caches that happen to be good at quiz questions.</p>
+<p>To organize the space, the authors classify any memory system along three independent axes:</p>
+<p><img alt="WHERE / WHAT / HOW taxonomy" src="../figures/fig03_where_what_how.png" /></p>
+<p><strong>WHERE: the substrate.</strong> This is where the state physically lives.</p>
+<ul>
+<li><em>Contextual</em> memory is tokens in the live prompt: scratchpads, rolling summaries, ACE-style evolving "playbooks." It takes effect instantly and dies with the session, and every summary loses something.</li>
+<li><em>Activation</em> memory is KV caches, recurrent states and dedicated memory slots. It has high bandwidth, but it is tied to one model and is hard to inspect or move.</li>
+<li><em>External addressable</em> memory is logs, vector indexes, graphs and trees (MemGPT, Mem0, A-MEM, HippoRAG 2). You can edit and delete it, which is a big deal. The failure mode the authors name is <strong>functional forgetting</strong>: a memory still exists but stops ranking high enough to be retrieved.</li>
+<li><em>Adaptive parametric</em> memory is weights, adapters and fast weights (Titans, WISE, Larimar). Reads are free, but writes are expensive and hard to localize or undo.</li>
+</ul>
+<p><strong>WHAT: the asset.</strong> This is the form the memory takes <em>when it is used</em>.</p>
+<ul>
+<li><em>Episodic</em>: what happened (traces, dialogues, trajectories). High fidelity, but expensive to keep.</li>
+<li><em>Semantic</em>: what is known (facts, relations, preferences). Compact, but at risk of generalizing too early.</li>
+<li><em>Procedural</em>: how to act (workflows, tool rules, code skills). Transfers directly into behavior, but quietly bakes in assumptions about the environment, such as a tool's version.</li>
+</ul>
+<p><strong>HOW: the policy.</strong> This is who decides what gets written, kept and forgotten.</p>
+<ul>
+<li><em>Prescribed</em> policies use fixed rules: FIFO, LRU, top-k, decay thresholds. They are predictable and dumb.</li>
+<li><em>Deliberative</em> policies let the LLM decide case by case. MemGPT, Mem0 and A-MEM all work this way. They are flexible and readable, but they are expensive and have no credit assignment: nobody tells the model whether last week's "save this" was a good call.</li>
+<li><em>Learned</em> policies train a controller on task outcomes (Memory-R1, MemRL, AgeMem). This is the most promising and least mature option.</li>
+</ul>
+<p>What I like about this framing is that the axes are <strong>orthogonal</strong>. Mem0 is external × semantic × deliberative. Swap in a learned policy over the same store and you get something like Memory-R1. Voyager is external × procedural (a library of code skills). You can place almost any system as a point in this 3-D space, and the empty regions point to research gaps. Learned policies over procedural memory are one example.</p>
+<hr />
+<h2>The lifecycle: two loops, not one pipeline</h2>
+<p>Most system diagrams draw memory as a pipeline: write → store → retrieve. The main survey argues it is really <strong>two coupled loops</strong>:</p>
+<p><img alt="Two coupled loops" src="../figures/fig04_two_loops.png" /></p>
+<p>The <strong>inner memory-state loop</strong> has four stages:</p>
+<ol>
+<li><strong>Formation and selective writing.</strong> The paper calls admission the <em>plasticity boundary</em>: whatever passes it can change future behavior. Good systems tag each write with provenance, a time of validity, a scope and a confidence. Bad ones let "memory pollution" in.</li>
+<li><strong>Organization and consolidation.</strong> This turns episodes into reusable abstractions (ExpeL's insights, Voyager's skills). The risk has a name, <strong>context collapse</strong>: compression strips out <em>when</em>, <em>who</em> and <em>under what conditions</em>, and leaves a confident-sounding rule. One study cited in the survey found that repeated LLM rewriting of memories helps at first and then starts hurting.</li>
+<li><strong>Retrieval and use.</strong> A memory has to be preserved, found, <em>used</em>, and then change behavior. That four-step cascade comes back later as the key evaluation idea.</li>
+<li><strong>Revision and forgetting.</strong> The survey separates <em>invalidation</em> (the fact is no longer true, so mark it with an end date, as Zep/Graphiti does) from <em>capacity forgetting</em> (we ran out of room). It also separates both from <em>catastrophic</em> forgetting.</li>
+</ol>
+<p>The <strong>outer policy loop</strong> is stage 5. Task feedback over a horizon updates the rules that run the inner loop. The authors describe three levels. At the state level, reflections are written into memory (Reflexion). With offline policy training, a controller is trained and then frozen. With online policy evolution, the rules keep improving in deployment, and the authors call this the least developed level.</p>
+<p>The formal test behind this is simple and, I think, the most useful sentence in the paper. <strong>A memory write counts as learning only if it is read later and produces a measurable change in behavior.</strong> Storage alone doesn't count.</p>
+<hr />
+<h2>A second lens: Storage → Reflection → Experience</h2>
+<p><em>From Storage to Experience</em> (ACL 2026 Findings) arranges the same field along a history of increasing abstraction:</p>
+<p><img alt="Storage → Reflection → Experience" src="../figures/fig05_storage_reflection_experience.png" /></p>
+<ul>
+<li><strong>Storage</strong> keeps the trajectory. It can be <em>linear</em> (context windows, compression), <em>vector</em> (similarity plus the recency and importance weights that Generative Agents popularized) or <em>structured</em> (tables, tiers, graphs).</li>
+<li><strong>Reflection</strong> refines a single trajectory. It can be <em>introspective</em> (Reflexion's self-critique, Mem0's maintenance), <em>environment-anchored</em> (outcomes decide the lesson) or <em>coordinated</em> (several agents calibrate each other).</li>
+<li><strong>Experience</strong> abstracts across many trajectories into rules, procedures and skills. These can be <em>explicit</em> (guidelines, skill libraries), <em>implicit</em> (pushed into latent states or weights) or a <em>hybrid</em> that accumulates first and internalizes later.</li>
+</ul>
+<p>The paper's useful distinction is between <em>reflection</em> and <em>experience</em>. Reflection works inside one trajectory and produces a lesson tied to that task. Experience works across trajectories and produces something meant to transfer to tasks the agent has never seen. The authors also make an honest admission: they cannot rank stages quantitatively, because each stage optimizes a different objective. That is an early hint of the evaluation mess discussed below.</p>
+<hr />
+<h2>Under the hood: memory inside the model</h2>
+<p>The Tsinghua/NUS/Bosch survey deliberately ignores agent frameworks and asks how the <em>architecture</em> holds state. It classifies mechanisms along three axes: representation (implicit or explicit), update dynamics (offline or online) and persistence (short or long term).</p>
+<p><img alt="Model-level memory map" src="../figures/fig06_model_level_memory.png" /></p>
+<p>A few things jumped out at me:</p>
+<ul>
+<li><strong>Implicit memory</strong> is a by-product of computation with no read/write interface of its own. It covers everything from the plain KV cache to the long list of linear-attention and state-space models (Mamba-3, RWKV-7, Gated DeltaNet, Kimi Linear). It is cheap and automatic, but capacity is bounded and you can't decide <em>what</em> it keeps.</li>
+<li><strong>Explicit memory</strong> has an addressable component. Examples are kNN-LM's datastore, mixture-of-experts layers (which the authors treat as conditional parameter memory), plug-in key-value memories, and the <strong>test-time learners</strong>: Titans, TTT-E2E, MEMORYLLM and Nested Learning. These update a memory module <em>during inference</em>, often gated by how "surprising" the input is.</li>
+<li>The offline / short-term corner is empty. State that is fixed at training time but also expires quickly barely exists in practice. I found that oddly satisfying.</li>
+</ul>
+<p>Their conclusion is that no single mechanism wins, so <strong>hybrid architectures will become the norm</strong>. That matches the agent-level surveys almost exactly. The same trade-off, <em>stability vs. plasticity</em>, shows up whether the memory is a recurrent state or a vector database.</p>
+<hr />
+<h2>The techniques that keep showing up on leaderboards</h2>
+<p>Before the numbers, here are the three architectures that most leaderboard rows are built on:</p>
+<p><img alt="MemGPT, Mem0 and Zep architectures" src="../figures/fig19_three_architectures.png" /></p>
+<p><strong>MemGPT / Letta: the operating-system metaphor.</strong> The context window is RAM. A <em>recall storage</em> holds the full message history and an <em>archival storage</em> is a vector database. The LLM moves data between them with function calls, and the system warns it when the context is getting full so it can save what matters. It was the first design that made "the agent manages its own memory" concrete. The cost is that every memory decision is an LLM call.</p>
+<p><strong>Mem0: extract, then reconcile.</strong> For each new message pair, an LLM extracts candidate facts using a rolling summary and the recent turns as context. Each candidate is compared with the most similar existing memories, and the LLM picks one of four operations: <strong>ADD, UPDATE, DELETE or NOOP</strong>. A graph variant (Mem0g) stores entity triples and marks contradicted edges as invalid instead of deleting them. The design is simple, and it targets the most common real-world need: <em>facts that change</em>.</p>
+<p><strong>Zep / Graphiti: a knowledge graph with two clocks.</strong> Memory has three tiers. An <em>episode</em> subgraph holds raw messages and never throws anything away. A <em>semantic</em> subgraph holds entities as nodes and facts as edges. A <em>community</em> subgraph holds clusters with summaries. Every fact edge is <strong>bi-temporal</strong>: it records when the fact was true in the world (valid-from / valid-to) and when the system learned or retired it. That lets an agent answer "where did Alice work <em>last year</em>?" without mixing up old and new facts.</p>
+<p>Three families of <strong>experience</strong> techniques also come up in almost every survey:</p>
+<ul>
+<li><strong>Reflexion → ExpeL → Agent Workflow Memory → ReasoningBank.</strong> This line goes from verbal post-mortems on single attempts, to insights extracted by comparing successes with failures, to reusable workflows (reported gains of +24.6% on Mind2Web and +51.1% on WebArena), to distilled reasoning strategies. They are procedural memory written in natural language.</li>
+<li><strong>Skill libraries (Voyager and its successors).</strong> Executable code as memory. Voyager reported 3.3× more unique items discovered and tech-tree milestones reached up to 15.3× faster.</li>
+<li><strong>Learned controllers (Memory-R1, MEM1 and others).</strong> These use reinforcement learning to decide <em>what</em> to store or how to compress a running state, instead of prompting an LLM to guess.</li>
+</ul>
+<hr />
+<h2>The leaderboard, and how to read it</h2>
+<h3>LoCoMo: the benchmark everyone reports</h3>
+<p>LoCoMo has long multi-session conversations, each about 26k tokens, followed by questions about them. The best-known results table comes from the Mem0 paper:</p>
+<p><img alt="LoCoMo accuracy vs latency" src="../figures/fig07_locomo_accuracy_vs_latency.png" /></p>
+<p>Two readings, both correct:</p>
+<ul>
+<li><strong>The headline:</strong> Mem0 matches or beats every other memory system on accuracy while answering in 1.4 seconds at p95. Full context takes 17 seconds, and Mem0 uses 93% fewer context tokens.</li>
+<li><strong>The fine print:</strong> <em>full context still scores highest</em> (72.9 vs. 66.9). A 26k-token conversation fits easily in a modern context window, so on LoCoMo memory is a <strong>cost and latency</strong> optimization, not an accuracy one. Also, the baselines in this table were run by Mem0's authors. Vendors publish conflicting numbers for the same systems, and the Harness paper found that LoCoMo and LongMemEval make up 62% of all reported benchmark-system pairs. The field is tuning hard to two datasets.</li>
+</ul>
+<h3>LongMemEval: where memory beats brute force</h3>
+<p>LongMemEval is harder. It has 500 questions over histories of about 115k tokens (the <em>S</em> version) or 1.5M tokens (the <em>M</em> version), and tests five abilities: information extraction, multi-session reasoning, temporal reasoning, <strong>knowledge updates</strong> and <strong>abstention</strong> (knowing when <em>not</em> to answer). Here the picture flips:</p>
+<p><img alt="LongMemEval: Zep vs full context" src="../figures/fig08_longmemeval_zep.png" /></p>
+<p>With GPT-4o, Zep's temporal graph scored <strong>71.2% vs. 60.2%</strong> for stuffing the whole history into the prompt. It cut latency by about 90% and read about 1.6k tokens instead of 115k. The gains were largest on temporal reasoning and preference questions. Zep was noticeably <em>worse</em> on questions about what the assistant itself said (94.6% → 80.4% with GPT-4o), which is a nice reminder that every compression drops something.</p>
+<p>The LongMemEval paper also ran useful <strong>design ablations</strong>. Indexing each memory under extra keys made from extracted facts improved recall@k by 9.4% and accuracy by 5.4%. Expanding time-sensitive queries with explicit time ranges improved temporal recall by 7–11%. Storing memories per conversational round worked better than per whole session.</p>
+<h3>Independent evaluation 1: Harness the Memory</h3>
+<p>Vendor tables compare full products. The <em>Harness the Memory</em> paper (Aug/Nov 2026) instead held <strong>everything fixed except the memory substrate</strong>: same backbone, same prompts, same harness. It then tested 11 designs on user-centric benchmarks (LoCoMo, LongMemEval-S, MemoryAgentBench) and agent-centric ones (ALFWorld for embodied tasks, BigCodeBench-Hard for coding).</p>
+<p><img alt="Substrate heatmap" src="../figures/fig09_harness_substrate_heatmap.png" /></p>
+<p>There is no single winner. A LightRAG-style dual-level graph tops LoCoMo and LongMemEval. A ReadAgent-style gist index tops long-range and test-time-learning tasks. Conflict resolution is bad for <em>everyone</em>: the best score is 0.32. Full context collapses on LongMemEval-S (0.19) because the history overflows the window. LoRA "memory in the weights" is the weakest design in almost every column.</p>
+<p>Accuracy also has a cost:</p>
+<p><img alt="Latency vs score" src="../figures/fig11_harness_latency_vs_score.png" /></p>
+<p>The graph that wins LoCoMo costs about 36× the per-query latency of a plain vector index. Its write path also consumed roughly 51M auxiliary-LLM tokens for one LoCoMo run, against zero for BM25.</p>
+<p>The most interesting result, to me, is what happens when the agent has to <em>act</em>:</p>
+<p><img alt="Agent tasks: change vs no memory" src="../figures/fig10_harness_agent_tasks.png" /></p>
+<p>On embodied ALFWorld tasks, distilled strategies (ReasoningBank-style) gave the biggest boost, +9.7 points. On coding, almost everything <em>hurt</em> except simple lexical retrieval. The authors also ran a <strong>retrieval-depth ablation</strong>. On LoCoMo, retrieving more items (larger k) helped every substrate. On ALFWorld, it hurt. As k grew, the plain vector and BM25 indexes fell <em>below the no-memory baseline</em>. An attention probe suggested why: retrieved text pulls the model's attention away from the current observation and the list of valid actions. More memory is not automatically better for an agent that acts.</p>
+<h3>Independent evaluation 2: MERIT, when facts change</h3>
+<p>MERIT asks the question I care about most as a builder. When a fact <em>changes</em> halfway through a series of tool-using tasks, does the agent act on the new value?</p>
+<p><img alt="MERIT hard tier" src="../figures/fig14_merit_hard_tier.png" /></p>
+<p>Without memory, the agent never succeeds (0.00). Full replay of past transcripts is immune to updates but expensive, and it struggles when several facts must be combined. <strong>Embedding retrieval is the weak spot.</strong> It returns the stale and the fresh value side by side with no recency signal, and success drops to 0.35–0.70. Update-on-write fact stores and LLM summaries stay at 0.70–1.00.</p>
+<p>Two more MERIT findings stuck with me:</p>
+<ul>
+<li><strong>Agents ignore correct memories.</strong> In 55 probe episodes the fresh value was in the prompt, and the agent used it in only 30.</li>
+<li><strong>Extraction quality is a hidden variable.</strong> Swapping the fact extractor, from regex to LLM or the reverse, moved one domain by up to <strong>60 points</strong>.</li>
+</ul>
+<p>MERIT also reports <em>cost-adjusted marginal utility</em>: success gained per dollar spent. On that measure, full replay is never the economical choice.</p>
+<hr />
+<h2>Ablations from the main paper: memory can make an agent worse</h2>
+<p>The main survey ran small but clever experiments with Mem0 and a Qwen3-30B model. Two results deserve to be better known.</p>
+<p><strong>1. How the agent reads memory matters as much as what is stored.</strong></p>
+<p><img alt="Reader policy ablation" src="../figures/fig13_reader_policy_ablation.png" /></p>
+<p>Over the <em>same</em> memory bank, reading the whole bank, searching it, and searching then summarizing gave F1 of 4.63, 4.29 and 3.91. Each step saves tokens (730 → 226 → 44) and costs accuracy. Separately, raising the read budget from 512 to 2,048 tokens took LongMemEval accuracy from 35% to 44%. (The absolute LoCoMo F1 is low in this setup. Compare the bars with each other, not with leaderboard numbers.)</p>
+<p><strong>2. Memory that helps early can hurt later.</strong></p>
+<p><img alt="Stateful minus reset" src="../figures/fig12_stateful_minus_reset.png" /></p>
+<p>The authors compared an agent that keeps its memory (<em>stateful</em>) with the same agent reset to empty (<em>reset</em>) on a stream of research-ideation dialogues. After 64 dialogues, memory helped by +7.1 points. After 128 it <em>hurt</em> by about 10 points. After 256 it hurt by about 14. Periodic consolidation shrank the store from about 3,900 to about 1,800 tokens, but the gain stayed negative. Accumulated memory was crowding out useful context and pushing in stale assumptions.</p>
+<p>I think this is the most important plot in the whole set of papers. Nearly every leaderboard measures a single point in time. This one measures a <em>trajectory</em>, and that is how agents are deployed.</p>
+<hr />
+<h2>So how <em>should</em> we measure memory?</h2>
+<p>The main survey's answer is a <strong>four-gate cascade</strong>. I added evidence from the other papers to each gate:</p>
+<p><img alt="Four-gate cascade" src="../figures/fig18_four_gate_cascade.png" /></p>
+<ol>
+<li><strong>Preservation.</strong> Was it stored, and stored correctly? (MERIT's extractor swing.)</li>
+<li><strong>Access.</strong> Can it be found at the right moment? (LongMemEval's key expansion.)</li>
+<li><strong>Utilization.</strong> Does the agent actually use it? (MERIT's 45% ignore rate.)</li>
+<li><strong>Effect.</strong> Does behavior improve over no memory, now and later? (The stateful-minus-reset curve.)</li>
+</ol>
+<p>The authors' "weakest-gate hypothesis" says the overall benefit is capped by whichever gate leaks most. Recall benchmarks mostly test gates 1 and 2. On top of the gates, the paper proposes three families of metrics:</p>
+<ul>
+<li><strong>Retention</strong> under delay and interference: how much of a gain survives later.</li>
+<li><strong>Adaptation</strong> to change: detection delay, steps to recover, how long stale errors persist.</li>
+<li><strong>Transfer</strong>: zero-shot gains on new tasks, and a negative-transfer rate.</li>
+</ul>
+<p>Every comparison runs against matched baselines (no memory, full history, static RAG and equal compute) so that "memory helped" can't secretly mean "we gave it more tokens."</p>
+<p>If I could make one change to how papers report results, it would be this: <strong>report stateful minus reset over time, plus cost per successful task.</strong></p>
+<hr />
+<h2>The governance layer: remembering is easy, un-remembering is hard</h2>
+<p><em>Always-On Agents</em> takes a different angle. It treats a long-running agent as a <strong>persistent-state system</strong>. Its state includes memories, but also task ledgers, permissions, credentials, commitments, audit logs and triggers. The authors coded 435 papers by which lifecycle stages they address:</p>
+<p><img alt="Corpus coverage by lifecycle stage" src="../figures/fig15_always_on_corpus.png" /></p>
+<p>The imbalance is stark. 62% of works deal with <em>retrieval</em>. Only 15% deal with <em>forgetting</em> and only 6% with <em>rollback</em>. According to the authors, none of the coded works reports how successful or costly recovery actually is.</p>
+<p>They describe the record each memory should carry along six axes: <strong>authority, scope, mutability, provenance, recoverability and actionability</strong>. They also propose five invariants a governed memory should never break: authority can't silently grow, scope can't silently expand, provenance is preserved, deletions propagate, and rollbacks are traceable.</p>
+<p>Then they built a small evaluation contract, <strong>AOEP-v0</strong>, that scores <em>obligations</em> instead of answer quality. The test cases include a restart, a revoked permission, a deletion request and a poisoned tool output:</p>
+<p><img alt="AOEP-v0 scorecard" src="../figures/fig16_aoep_scorecard.png" /></p>
+<p>A governed reference design met 15 of 15 obligations. Raw-storage designs met 7. Systems that extract facts (a Mem0-style reimplementation and a local Mem0 configuration) met only 3–4. In two episodes they leaked a deleted billing address and an attacker-planted address. The authors say clearly that this is a small pilot, not a product verdict. The most important cell, though, is the <strong>no-memory</strong> row. It passes every "must not" check by storing nothing, and it fails every obligation. Safety and usefulness have to be measured <em>together</em>.</p>
+<h3>Memory as an attack surface</h3>
+<p>The security survey (MemTensor and collaborators, EMNLP 2026) explains why this matters. Memory turns a one-shot prompt injection into a <strong>persistent compromise</strong>:</p>
+<p><img alt="Memory security lifecycle" src="../figures/fig17_memory_security_lifecycle.png" /></p>
+<p>The attacks map onto six lifecycle phases. Two examples:</p>
+<ul>
+<li>At <em>write</em> time, MINJA plants poison using queries alone, and AgentPoison reported attack success of 80% or more with under 0.1% of the memory poisoned.</li>
+<li>At <em>store</em> time, consolidation can launder a poisoned entry into a trusted-looking "lesson."</li>
+</ul>
+<p><em>Retrieval</em> lets salient memories override the user's actual instruction. <em>Execution</em> lets memory steer which tools are called and with what arguments. <em>Sharing</em> spreads infection across agents and leaks data across users. At <em>forget</em> time, deleted facts survive in summaries and indexes.</p>
+<p>The survey proposes <strong>Verifiable Memory Governance</strong>: five properties you can actually test. They are write authorization, provenance visibility, principal-scoped retrieval, rollbackability and verified forgetting. The last one is harder than it sounds. A single remembered fact leaves derivatives: raw logs, summary cards, vector indexes, reflected "lessons," shared stores. Deleting the original does not delete those. How coarsely you summarize decides how much a deletion request actually reaches.</p>
+<hr />
+<h2>My two cents</h2>
+<p>After a few weeks with these papers, here is where I land.</p>
+<p><strong>1. "Memory" is three problems sharing one word.</strong> One is <em>storage engineering</em>: indexes, graphs, latency. One is <em>learning</em>: does experience improve future behavior? One is <em>governance</em>: who controls the state, and can it be undone? Most products and benchmarks solve the first, many papers claim the second, and almost nobody measures the third. Asking a vendor which of the three they mean clears up a lot of confusion.</p>
+<p><strong>2. LoCoMo-style leaderboards are close to saturated, and the numbers mislead.</strong> When the whole conversation fits in the context window and full context still wins, the leaderboard is really ranking <em>compression</em>. Add self-reported baselines, different judge models and missing cost columns, and I would not choose a memory system from a LoCoMo number. I would trust LongMemEval more, and the Harness- and MERIT-style controlled comparisons most.</p>
+<p><strong>3. The write path is underrated.</strong> MERIT's 60-point extractor swing, context collapse in consolidation, and poisoning that targets the write step all point the same way: most failures are set at <em>write</em> time. Yet retrieval gets most of the research attention (62% of works). If I were building an agent tomorrow, I would spend my effort on typed writes with provenance and validity times before I touched a reranker.</p>
+<p><strong>4. Forgetting is a feature, not a bug.</strong> The stateful-minus-reset curve going negative after 128 dialogues is the clearest evidence I've seen that unbounded memory degrades agents. We should treat agent memory the way we treat databases: schemas, migrations, tombstones, backups, and a garbage collector that is tested. Zep's choice to <em>invalidate</em> facts rather than overwrite them, and the security survey's verified forgetting, are steps in that direction.</p>
+<p><strong>5. Match the substrate to the job, and expect portfolios.</strong> From the controlled studies, my practical rule of thumb:</p>
+<ul>
+<li>facts that change → update-on-write store or a temporal graph</li>
+<li>"how to do things" → distilled strategies and skill libraries (the best ALFWorld gain)</li>
+<li>code reuse → simple lexical or vector retrieval</li>
+<li>short, self-contained tasks → no memory at all</li>
+</ul>
+<p>The Harness paper found that a per-question oracle choosing among substrates would score 0.93 on LoCoMo versus 0.65 for the best single one (Qwen3-8B backbone). The learned router they tried did not transfer to unseen conversations. Learning to <em>route</em> between memories looks like the next big open problem.</p>
+<p><strong>6. A prediction.</strong> Within a year, memory APIs will ship provenance, versioning and per-user scoping by default, the way every serious database ships transactions. Regulation and enterprise buyers will force it, and the security survey's results make the case. The systems that win the next leaderboard will be the ones that can show you <em>why</em> they remembered something and prove they forgot it.</p>
+<hr />
+<h2>A builder's checklist</h2>
+<ul>
+<li>Always run <strong>no-memory</strong> and <strong>full-context</strong> baselines. Report <strong>stateful minus reset</strong> at several points in time.</li>
+<li>Tag every write with <strong>source, timestamp, validity window, scope and confidence</strong>.</li>
+<li>For mutable facts, use <strong>update-on-write</strong> or <strong>bi-temporal</strong> edges. Don't rely on similarity search alone.</li>
+<li>Show the model <em>recency and provenance</em> next to each memory. Agents ignore correct memories that look no different from stale ones.</li>
+<li><strong>Cap, consolidate and audit.</strong> Keep raw episodes so consolidation can be checked and rolled back.</li>
+<li><strong>Scope retrieval by user</strong>, and test deletion by probing summaries and indexes for leftovers.</li>
+<li>Track <strong>tokens, latency and dollars per successful task</strong>, not only accuracy.</li>
+<li>Keep retrieval <strong>shallow for agents that act</strong>. Top-k that helps QA can hurt planning.</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ol>
+<li>D. Li et al. <em>Memory-Centric Continual Learning for AI Agents.</em> arXiv:2610.29357, Oct 2026.</li>
+<li>T. Ding, A. Nannapaneni, B. Liu, L. Zhang. <em>Always-On Agents: A Survey of Persistent Memory, State, and Governance in LLM Agents.</em> arXiv:2606.30306, Jun 2026.</li>
+<li>S. Zhoubian, D. Zhang, E. Kharlamov, J. Tang. <em>Memory for Large Language Models.</em> arXiv:2607.25380, Jul 2026.</li>
+<li>J. Luo, Y. Tian et al. <em>From Storage to Experience: A Survey on the Evolution of LLM Agent Memory Mechanisms.</em> arXiv:2605.06716, ACL 2026 Findings.</li>
+<li>Z. Lin, X. Hao et al. <em>A Survey on Long-Term Memory Security in LLM Agents: Attacks, Defenses, and Governance Across the Memory Lifecycle.</em> arXiv:2604.16548 (v6, Nov 2026).</li>
+<li>W.-C. Huang et al. <em>Harness the Memory: A Holistic Evaluation of Memory Substrates in Memory Agents.</em> arXiv:2608.15008 (v2, Nov 2026).</li>
+<li>S. Mishra, S. Mishra. <em>When Does Memory Help? A Cost-Aware Evaluation of Long-Term Memory in Tool-Using LLM Agents.</em> arXiv:2609.05441, 2026.</li>
+<li>P. Chhikara et al. <em>Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory.</em> arXiv:2504.19413, 2025.</li>
+<li>P. Rasmussen et al. <em>Zep: A Temporal Knowledge Graph Architecture for Agent Memory.</em> arXiv:2501.13956, 2025.</li>
+<li>D. Wu et al. <em>LongMemEval: Benchmarking Chat Assistants on Long-Term Interactive Memory.</em> arXiv:2410.10813, ICLR 2025.</li>
+<li>C. Packer et al. <em>MemGPT: Towards LLMs as Operating Systems.</em> arXiv:2310.08560, 2023.</li>
+</ol>
+<p><em>All figures are my own, drawn from numbers and taxonomies reported in the papers above. The data behind every chart is in the companion GitHub repository.</em></p></body></html>
